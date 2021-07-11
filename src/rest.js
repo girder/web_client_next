@@ -22,12 +22,17 @@ function setCookieFromAuth(auth) {
  */
 function setCookieFromHash(location) {
   const arr = location.hash.split(OauthTokenPrefix);
-  const token = arr[arr.length - 1].split(OauthTokenSuffix)[0];
-  if (token.length === GirderTokenLength) {
+  const tokenParts = arr[arr.length - 1].split(OauthTokenSuffix);
+  let token = null;
+  if (tokenParts.length >= 2) {
+    // Both the prefix and the suffix were present
+    [token] = tokenParts;
+    location.hash = location.hash.replace(`${OauthTokenPrefix}${token}${OauthTokenSuffix}`, '');
+  }
+  if (token !== null && token.length === GirderTokenLength) {
     const expires = new Date();
     expires.setDate((new Date()).getDate() + 365);
     setCookieFromAuth({ token, expires });
-    location.hash = location.hash.replace(`${OauthTokenPrefix}${token}${OauthTokenSuffix}`, '');
   }
   return token;
 }
@@ -52,7 +57,7 @@ export default class RestClient extends Vue {
    */
   constructor({
     apiRoot = '/api/v1',
-    token = cookies.get('girderToken') || setCookieFromHash(window.location),
+    token = setCookieFromHash(window.location) || cookies.get('girderToken'),
     axios = axios_.create(),
     authenticateWithCredentials = false,
     useGirderAuthorizationHeader = false,
